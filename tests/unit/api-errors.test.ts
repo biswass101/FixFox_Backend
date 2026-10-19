@@ -1,9 +1,18 @@
-import { describe, it, expect } from 'vitest';
-import { formatApiError } from '@/lib/api-errors';
-import axios from 'axios';
+import { describe, it, expect, vi } from 'vitest';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
+import { toast } from 'sonner';
+
+vi.mock('sonner', () => ({
+  toast: {
+    error: vi.fn(),
+    success: vi.fn(),
+    warning: vi.fn(),
+    info: vi.fn(),
+  },
+}));
 
 describe('formatApiError', () => {
-  it('formats structured backend error envelope', () => {
+  it('formats structured backend error envelope with exact message and cause', () => {
     const error = {
       isAxiosError: true,
       response: {
@@ -23,7 +32,11 @@ describe('formatApiError', () => {
     };
 
     const result = formatApiError(error);
-    expect(result.message).toBe('Input validation failed');
+    expect(result.title).toBe('Input validation failed');
+    expect(result.cause).toBe('email: Invalid email address; password: Password is too short');
+    expect(result.message).toBe(
+      'Input validation failed: email: Invalid email address; password: Password is too short'
+    );
     expect(result.code).toBe('VALIDATION_ERROR');
     expect(result.fieldErrors).toEqual({
       email: 'Invalid email address',
@@ -108,5 +121,27 @@ describe('formatApiError', () => {
     const result = formatApiError('some string error');
     expect(result.message).toBe('An unknown error occurred');
   });
-});
 
+  it('extracts exact error message and cause when calling showErrorToast', () => {
+    const error = {
+      isAxiosError: true,
+      response: {
+        status: 422,
+        data: {
+          success: false,
+          error: {
+            code: 'VALIDATION_ERROR',
+            message: 'Validation failed',
+            details: [{ field: 'image', message: 'Required' }],
+          },
+        },
+      },
+    };
+
+    showErrorToast(error);
+    expect(toast.error).toHaveBeenCalledWith('Validation failed', {
+      description: 'image: Required',
+      duration: 6000,
+    });
+  });
+});

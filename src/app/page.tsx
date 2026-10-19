@@ -2,22 +2,36 @@
 
 import { useEffect } from 'react';
 import { useRouter } from 'next/navigation';
+import { useCurrentUser } from '@/hooks/use-auth';
 import { useAuthStore } from '@/stores/auth.store';
 import { LoadingSpinner } from '@/components/shared/loading-spinner';
 
 export default function RootPage() {
   const router = useRouter();
-  const { isAuthenticated, isLoading } = useAuthStore();
+  const { data: user, isLoading: isUserLoading } = useCurrentUser();
+  const { isAuthenticated, isLoading: isStoreLoading } = useAuthStore();
+
+  const loading = isUserLoading || isStoreLoading;
 
   useEffect(() => {
-    if (!isLoading) {
-      if (isAuthenticated) {
+    if (!loading) {
+      if (user || isAuthenticated) {
         router.replace('/dashboard');
       } else {
         router.replace('/login');
       }
     }
-  }, [isAuthenticated, isLoading, router]);
+  }, [user, isAuthenticated, loading, router]);
+
+  useEffect(() => {
+    const fallbackTimer = setTimeout(() => {
+      if (!isAuthenticated && !user) {
+        router.replace('/login');
+      }
+    }, 2500);
+
+    return () => clearTimeout(fallbackTimer);
+  }, [isAuthenticated, user, router]);
 
   return (
     <div className="flex min-h-screen items-center justify-center bg-background">
@@ -25,4 +39,3 @@ export default function RootPage() {
     </div>
   );
 }
-

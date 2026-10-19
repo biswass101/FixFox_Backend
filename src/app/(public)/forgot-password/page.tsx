@@ -8,7 +8,7 @@ import { z } from 'zod';
 import { CheckCircle2, ChevronLeft, Loader2 } from 'lucide-react';
 
 import { useForgotPasswordMutation } from '@/hooks/use-auth';
-import { formatApiError } from '@/lib/api-errors';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -50,6 +50,7 @@ export default function ForgotPasswordPage() {
     } catch (error) {
       const formatted = formatApiError(error);
       setServerError(formatted.message);
+      showErrorToast(error, 'Password reset request failed');
     }
   };
 

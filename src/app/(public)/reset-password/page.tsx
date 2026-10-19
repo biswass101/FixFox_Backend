@@ -10,7 +10,7 @@ import { Eye, EyeOff, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { useResetPasswordMutation } from '@/hooks/use-auth';
-import { formatApiError } from '@/lib/api-errors';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -75,6 +75,7 @@ function ResetPasswordContent() {
     } catch (error) {
       const formatted = formatApiError(error);
       setServerError(formatted.message);
+      showErrorToast(error, 'Password update failed');
     }
   };
 

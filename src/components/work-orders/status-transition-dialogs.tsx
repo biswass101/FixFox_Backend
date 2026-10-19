@@ -25,7 +25,7 @@ import {
   useCancelWorkOrderMutation,
 } from '@/hooks/use-work-orders';
 import { useAuthStore } from '@/stores/auth.store';
-import { formatApiError } from '@/lib/api-errors';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
 
 interface StatusTransitionControlsProps {
   workOrder: WorkOrder;
@@ -57,6 +57,12 @@ export function StatusTransitionControls({ workOrder }: StatusTransitionControls
   if (!canUpdate) return null;
 
   const handleStartWork = async () => {
+    if (!workOrder.assigneeId && !workOrder.assignee) {
+      toast.error('Technician required', {
+        description: 'A technician must be assigned before starting work on this ticket',
+      });
+      return;
+    }
     try {
       await updateStatusMutation.mutateAsync({
         status: 'IN_PROGRESS',
@@ -64,14 +70,16 @@ export function StatusTransitionControls({ workOrder }: StatusTransitionControls
       });
       toast.success('Work order marked In Progress');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to start work');
     }
   };
 
   const handleResolveSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (resolutionSummary.trim().length < 5) {
-      toast.error('Resolution summary must be at least 5 characters');
+      toast.error('Resolution summary too short', {
+        description: 'Resolution summary must be at least 5 characters long',
+      });
       return;
     }
     try {
@@ -79,14 +87,16 @@ export function StatusTransitionControls({ workOrder }: StatusTransitionControls
       setResolveOpen(false);
       toast.success('Work order marked as Resolved');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to resolve work order');
     }
   };
 
   const handleReopenSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (reopenReason.trim().length < 5) {
-      toast.error('Reopen reason must be at least 5 characters');
+      toast.error('Reopen reason too short', {
+        description: 'Reopen reason must be at least 5 characters long',
+      });
       return;
     }
     try {
@@ -94,7 +104,7 @@ export function StatusTransitionControls({ workOrder }: StatusTransitionControls
       setReopenOpen(false);
       toast.success('Work order reopened');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to reopen work order');
     }
   };
 
@@ -103,7 +113,7 @@ export function StatusTransitionControls({ workOrder }: StatusTransitionControls
       await closeMutation.mutateAsync();
       toast.success('Work order closed and finalized');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to close work order');
     }
   };
 
@@ -114,13 +124,13 @@ export function StatusTransitionControls({ workOrder }: StatusTransitionControls
       setCancelOpen(false);
       toast.success('Work order cancelled');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to cancel work order');
     }
   };
 
   return (
     <div className="flex flex-wrap items-center gap-2">
-      {(workOrder.status === 'OPEN' || workOrder.status === 'ASSIGNED') && (
+      {workOrder.status === 'ASSIGNED' && Boolean(workOrder.assigneeId || workOrder.assignee) && (
         <Button
           size="sm"
           onClick={handleStartWork}

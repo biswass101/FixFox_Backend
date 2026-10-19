@@ -10,7 +10,7 @@ import { Eye, EyeOff, Loader2, Building, Mail } from 'lucide-react';
 import { toast } from 'sonner';
 
 import { invitationsApi, VerifyInvitationResponse } from '@/lib/api/invitations.api';
-import { formatApiError } from '@/lib/api-errors';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -94,7 +94,7 @@ function AcceptInviteContent() {
       toast.success('Invitation accepted! Please sign in with your new account.');
       router.replace('/login');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to accept invitation');
       setIsSubmitting(false);
     }
   };

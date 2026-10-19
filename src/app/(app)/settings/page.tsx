@@ -52,7 +52,7 @@ import {
 } from '@/components/ui/select';
 import { UserRole } from '@/types/auth';
 import { formatDateTime } from '@/lib/utils';
-import { formatApiError } from '@/lib/api-errors';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
 
 export default function SettingsPage() {
   const { user } = useAuthStore();
@@ -78,18 +78,30 @@ export default function SettingsPage() {
 
   const handleSendInvite = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!inviteEmail.trim()) return;
+    const email = inviteEmail.trim();
+    if (!email) {
+      toast.error('Email required', {
+        description: 'Please enter an email address for the invitation',
+      });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Invalid email format', {
+        description: 'Please provide a valid email address (e.g. user@domain.com)',
+      });
+      return;
+    }
 
     try {
       await createInviteMutation.mutateAsync({
-        email: inviteEmail.trim(),
+        email,
         role: inviteRole,
       });
       setIsInviteOpen(false);
       setInviteEmail('');
       toast.success('Invitation dispatched successfully');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to dispatch invitation');
     }
   };
 
@@ -98,18 +110,22 @@ export default function SettingsPage() {
       await revokeInviteMutation.mutateAsync(id);
       toast.success('Invitation revoked');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to revoke invitation');
     }
   };
 
   const handleChangePassword = async (e: React.FormEvent) => {
     e.preventDefault();
     if (newPassword.length < 8) {
-      toast.error('New password must be at least 8 characters');
+      toast.error('Password too short', {
+        description: 'New password must be at least 8 characters long',
+      });
       return;
     }
     if (newPassword !== confirmPassword) {
-      toast.error('New passwords do not match');
+      toast.error('Password mismatch', {
+        description: 'New password and confirmation password do not match',
+      });
       return;
     }
 
@@ -124,7 +140,7 @@ export default function SettingsPage() {
       setConfirmPassword('');
       toast.success('Password changed successfully');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to change password');
     } finally {
       setIsPasswordLoading(false);
     }

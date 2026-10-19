@@ -46,7 +46,7 @@ import {
   useRetryAITriageMutation,
 } from '@/hooks/use-work-orders';
 import { useAuthStore } from '@/stores/auth.store';
-import { formatApiError } from '@/lib/api-errors';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
 
 interface AITriagePanelProps {
   workOrderId: string;
@@ -130,28 +130,30 @@ export function AITriagePanel({ workOrderId, aiAnalysis }: AITriagePanelProps) {
       await reviewMutation.mutateAsync({ accepted: true });
       toast.success('AI recommendations accepted and applied to work order');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to accept AI recommendations');
     }
   };
 
   const handleOverrideSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!overrideReason.trim()) {
-      toast.error('Please specify an override rationale');
+      toast.error('Missing rationale', {
+        description: 'Please specify an override rationale before applying your custom classification',
+      });
       return;
     }
 
     try {
       await reviewMutation.mutateAsync({
         accepted: false,
-        overrideReason,
+        overrideReason: overrideReason.trim(),
         finalCategory: selectedCategory,
         finalPriority: selectedPriority,
       });
       setIsOverrideOpen(false);
       toast.success('Work order updated with overridden classification');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to override AI classification');
     }
   };
 
@@ -160,7 +162,7 @@ export function AITriagePanel({ workOrderId, aiAnalysis }: AITriagePanelProps) {
       await retryMutation.mutateAsync();
       toast.success('AI analysis job requeued for execution');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to re-trigger AI triage');
     }
   };
 

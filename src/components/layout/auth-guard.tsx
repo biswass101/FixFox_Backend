@@ -21,6 +21,16 @@ export function AuthGuard({ children }: AuthGuardProps) {
     }
   }, [isLoading, isError, user, isAuthenticated, router]);
 
+  useEffect(() => {
+    const fallbackTimer = setTimeout(() => {
+      if (!isAuthenticated && !user) {
+        router.replace('/login');
+      }
+    }, 3000);
+
+    return () => clearTimeout(fallbackTimer);
+  }, [isAuthenticated, user, router]);
+
   if (isLoading) {
     return (
       <div className="flex min-h-screen items-center justify-center bg-background">

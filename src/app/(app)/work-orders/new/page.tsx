@@ -26,12 +26,13 @@ import {
   useCreateWorkOrderMutation,
   useUploadImageMutation,
 } from '@/hooks/use-work-orders';
+import { workOrdersApi } from '@/lib/api/work-orders.api';
 import { useLocations, useAssets } from '@/hooks/use-entities';
 import {
   WorkOrderCategory,
   WorkOrderPriority,
 } from '@/types/work-orders';
-import { formatApiError } from '@/lib/api-errors';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
 
 const createSchema = z.object({
   title: z
@@ -117,21 +118,20 @@ export default function NewWorkOrderPage() {
 
       if (selectedFile) {
         try {
-          const formData = new FormData();
-          formData.append('image', selectedFile);
-          const { apiClient } = await import('@/lib/axios');
-          await apiClient.post(`/work-orders/${workOrder.id}/images`, formData, {
-            headers: { 'Content-Type': 'multipart/form-data' },
+          await workOrdersApi.uploadImage(workOrder.id, selectedFile);
+        } catch (uploadError) {
+          const uploadErr = formatApiError(uploadError);
+          toast.warning('Work order created, but photo upload failed', {
+            description: uploadErr.cause || uploadErr.message,
+            duration: 8000,
           });
-        } catch {
-          toast.warning('Work order created, but initial photo upload failed. You can re-upload on the details page.');
         }
       }
 
       toast.success('Work order created! AI triage dispatched.');
       router.push(`/work-orders/${workOrder.id}`);
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to create work order');
     }
   };
 
@@ -300,7 +300,7 @@ export default function NewWorkOrderPage() {
                 <Input
                   id="attachment"
                   type="file"
-                  accept="image/jpeg,image/png,image/webp"
+                  accept="image/*"
                   onChange={(e) => setSelectedFile(e.target.files?.[0] || null)}
                   disabled={createMutation.isPending}
                   className="cursor-pointer file:cursor-pointer"

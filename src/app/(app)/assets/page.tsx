@@ -44,7 +44,7 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Asset, AssetCondition } from '@/types/entities';
-import { formatApiError } from '@/lib/api-errors';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
 
 const conditionBadgeStyles: Record<AssetCondition, { label: string; variant: 'success' | 'warning' | 'destructive' | 'secondary' }> = {
   EXCELLENT: { label: 'Excellent', variant: 'success' },
@@ -111,7 +111,18 @@ export default function AssetsPage() {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!locationId || !assetCode.trim() || !name.trim()) return;
+    if (!locationId) {
+      toast.error('Location required', { description: 'Please select a location for this asset' });
+      return;
+    }
+    if (!assetCode.trim()) {
+      toast.error('Asset code required', { description: 'Please specify an asset code (e.g. HVAC-001)' });
+      return;
+    }
+    if (!name.trim()) {
+      toast.error('Asset name required', { description: 'Please enter a descriptive name for the asset' });
+      return;
+    }
 
     try {
       await createMutation.mutateAsync({
@@ -127,13 +138,17 @@ export default function AssetsPage() {
       setIsCreateOpen(false);
       toast.success('Asset created');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to create asset');
     }
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingAsset || !name.trim()) return;
+    if (!editingAsset) return;
+    if (!name.trim()) {
+      toast.error('Asset name required', { description: 'Asset name cannot be blank' });
+      return;
+    }
 
     try {
       await updateMutation.mutateAsync({
@@ -148,7 +163,7 @@ export default function AssetsPage() {
       setEditingAsset(null);
       toast.success('Asset updated');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to update asset');
     }
   };
 
@@ -160,7 +175,7 @@ export default function AssetsPage() {
       setDeletingAssetId(null);
       toast.success('Asset deleted');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to delete asset');
     }
   };
 

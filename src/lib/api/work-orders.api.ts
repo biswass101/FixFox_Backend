@@ -159,15 +159,19 @@ export const workOrdersApi = {
   },
 
   async uploadImage(id: string, file: File): Promise<WorkOrderImage> {
-    const formData = new FormData();
-    formData.append('image', file);
+    const base64 = await new Promise<string>((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(reader.result as string);
+      reader.onerror = (err) => reject(err);
+      reader.readAsDataURL(file);
+    });
+
+    const format = file.name.split('.').pop()?.toLowerCase();
     const response = await apiClient.post<ApiResponse<WorkOrderImage>>(
       `/work-orders/${id}/images`,
-      formData,
       {
-        headers: {
-          'Content-Type': 'multipart/form-data',
-        },
+        image: base64,
+        format,
       }
     );
     return response.data.data;

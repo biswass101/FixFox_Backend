@@ -11,7 +11,7 @@ import { Badge } from '@/components/ui/badge';
 import { WorkNote } from '@/types/work-orders';
 import { useCreateNoteMutation } from '@/hooks/use-work-orders';
 import { formatRelativeTime } from '@/lib/utils';
-import { formatApiError } from '@/lib/api-errors';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
 
 interface WorkNotesSectionProps {
   workOrderId: string;
@@ -26,7 +26,12 @@ export function WorkNotesSection({ workOrderId, notes }: WorkNotesSectionProps) 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!body.trim()) return;
+    if (!body.trim()) {
+      toast.error('Empty note', {
+        description: 'Please type a note before submitting',
+      });
+      return;
+    }
 
     try {
       await createNoteMutation.mutateAsync({
@@ -37,7 +42,7 @@ export function WorkNotesSection({ workOrderId, notes }: WorkNotesSectionProps) 
       setIsInternal(false);
       toast.success('Work note added');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to add work note');
     }
   };
 

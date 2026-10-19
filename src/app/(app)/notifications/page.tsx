@@ -16,6 +16,7 @@ import {
   RotateCw,
 } from 'lucide-react';
 import { toast } from 'sonner';
+import { showErrorToast } from '@/lib/api-errors';
 
 import {
   useNotifications,
@@ -56,16 +57,16 @@ export default function NotificationsPage() {
     try {
       await markAllReadMutation.mutateAsync();
       toast.success('All notifications marked as read');
-    } catch {
-      toast.error('Failed to mark all as read');
+    } catch (err) {
+      showErrorToast(err, 'Failed to mark all as read');
     }
   };
 
   const handleMarkOne = async (id: string) => {
     try {
       await markReadMutation.mutateAsync(id);
-    } catch {
-      toast.error('Failed to mark notification');
+    } catch (err) {
+      showErrorToast(err, 'Failed to mark notification as read');
     }
   };
 

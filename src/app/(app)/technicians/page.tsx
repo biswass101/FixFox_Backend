@@ -1,16 +1,32 @@
 'use client';
 
-import Link from 'next/link';
-import { Users, Phone, Mail, CheckCircle, RotateCw, Plus } from 'lucide-react';
-import { useTechnicians } from '@/hooks/use-entities';
+import { useState } from 'react';
+import { Users, Phone, Mail, CheckCircle, RotateCw, Plus, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import { useTechnicians, useCreateInvitationMutation } from '@/hooks/use-entities';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Input } from '@/components/ui/input';
+import { Label } from '@/components/ui/label';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
 import { EmptyState } from '@/components/shared/empty-state';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
 
 export default function TechniciansPage() {
   const { data: technicians = [], isLoading, isError, refetch, isRefetching } = useTechnicians();
+  const createInviteMutation = useCreateInvitationMutation();
+
+  const [isInviteOpen, setIsInviteOpen] = useState(false);
+  const [inviteEmail, setInviteEmail] = useState('');
 
   const getWorkloadBadge = (activeCount: number) => {
     if (activeCount === 0) {
@@ -23,6 +39,35 @@ export default function TechniciansPage() {
       return <Badge variant="warning">Moderate ({activeCount})</Badge>;
     }
     return <Badge variant="destructive">High Load ({activeCount})</Badge>;
+  };
+
+  const handleSendInvite = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const email = inviteEmail.trim();
+    if (!email) {
+      toast.error('Email is required', {
+        description: 'Please enter a technician email address to invite',
+      });
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+      toast.error('Invalid email format', {
+        description: 'Please provide a valid email address (e.g., name@domain.com)',
+      });
+      return;
+    }
+
+    try {
+      await createInviteMutation.mutateAsync({
+        email,
+        role: 'TECHNICIAN',
+      });
+      toast.success(`Technician invitation sent to ${email}`);
+      setInviteEmail('');
+      setIsInviteOpen(false);
+    } catch (err) {
+      showErrorToast(err, 'Failed to send technician invitation');
+    }
   };
 
   return (
@@ -45,11 +90,9 @@ export default function TechniciansPage() {
             Refresh
           </Button>
 
-          <Button asChild size="sm">
-            <Link href="/settings">
-              <Plus className="h-4 w-4 mr-1.5" />
-              Invite Technician
-            </Link>
+          <Button size="sm" onClick={() => setIsInviteOpen(true)}>
+            <Plus className="h-4 w-4 mr-1.5" />
+            Invite Technician
           </Button>
         </div>
       </div>
@@ -83,36 +126,35 @@ export default function TechniciansPage() {
         <EmptyState
           icon={Users}
           title="No technicians registered"
-          description="Send team invitations to onboarding technicians to start assigning maintenance tasks."
+          description="Send an invitation to onboard your first field technician"
           action={{
-            label: 'Invite technician',
-            onClick: () => {
-              window.location.href = '/settings';
-            },
+            label: 'Invite Technician',
+            onClick: () => setIsInviteOpen(true),
           }}
         />
       ) : (
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
           {technicians.map((tech) => (
-            <Card key={tech.id} className="shadow-sm hover:border-border transition-colors">
+            <Card key={tech.id} className="border-border/60 shadow-sm flex flex-col justify-between">
               <CardHeader className="pb-3">
-                <div className="flex items-start justify-between">
-                  <div>
-                    <CardTitle className="text-base font-semibold text-foreground">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <CardTitle className="text-base font-semibold truncate">
                       {tech.fullName}
                     </CardTitle>
-                    <CardDescription className="flex items-center gap-1.5 text-xs mt-1">
+                    <div className="flex items-center gap-1.5 text-xs text-muted-foreground mt-0.5 truncate">
                       <Mail className="h-3 w-3 shrink-0" />
                       <span className="truncate">{tech.email}</span>
-                    </CardDescription>
+                    </div>
                   </div>
                   {getWorkloadBadge(tech.activeJobCount)}
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3 text-xs">
+
+              <CardContent className="space-y-4 text-xs">
                 {tech.phone && (
                   <div className="flex items-center gap-1.5 text-muted-foreground">
-                    <Phone className="h-3 w-3 shrink-0" />
+                    <Phone className="h-3.5 w-3.5" />
                     <span>{tech.phone}</span>
                   </div>
                 )}
@@ -148,7 +190,64 @@ export default function TechniciansPage() {
           ))}
         </div>
       )}
+
+      <Dialog open={isInviteOpen} onOpenChange={setIsInviteOpen}>
+        <DialogContent className="sm:max-w-md">
+          <form onSubmit={handleSendInvite}>
+            <DialogHeader>
+              <DialogTitle>Invite Technician</DialogTitle>
+              <DialogDescription>
+                Send an email invitation to onboard a new technician to your organization.
+              </DialogDescription>
+            </DialogHeader>
+
+            <div className="space-y-4 py-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="techEmail">Technician Email</Label>
+                <Input
+                  id="techEmail"
+                  type="email"
+                  placeholder="technician@company.com"
+                  value={inviteEmail}
+                  onChange={(e) => setInviteEmail(e.target.value)}
+                  disabled={createInviteMutation.isPending}
+                  required
+                />
+              </div>
+
+              <div className="space-y-1.5">
+                <Label>Assigned Role</Label>
+                <div>
+                  <Badge variant="outline" className="px-2.5 py-1 text-xs font-semibold">
+                    TECHNICIAN
+                  </Badge>
+                </div>
+              </div>
+            </div>
+
+            <DialogFooter>
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setIsInviteOpen(false)}
+                disabled={createInviteMutation.isPending}
+              >
+                Cancel
+              </Button>
+              <Button type="submit" disabled={createInviteMutation.isPending}>
+                {createInviteMutation.isPending ? (
+                  <>
+                    <Loader2 className="mr-1.5 h-3.5 w-3.5 animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  'Send Invitation'
+                )}
+              </Button>
+            </DialogFooter>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
-

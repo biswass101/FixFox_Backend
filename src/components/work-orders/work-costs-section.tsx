@@ -36,7 +36,7 @@ import { Badge } from '@/components/ui/badge';
 import { WorkOrderCost } from '@/types/work-orders';
 import { useCreateCostMutation, useDeleteCostMutation } from '@/hooks/use-work-orders';
 import { formatCurrency } from '@/lib/utils';
-import { formatApiError } from '@/lib/api-errors';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
 
 interface WorkCostsSectionProps {
   workOrderId: string;
@@ -69,8 +69,22 @@ export function WorkCostsSection({
     const unit = parseFloat(unitCost);
     const hours = laborHours ? parseFloat(laborHours) : undefined;
 
-    if (!description.trim() || isNaN(qty) || qty <= 0 || isNaN(unit) || unit < 0) {
-      toast.error('Please enter valid cost item values');
+    if (!description.trim()) {
+      toast.error('Missing description', {
+        description: 'Please enter a description for this cost item',
+      });
+      return;
+    }
+    if (isNaN(qty) || qty <= 0) {
+      toast.error('Invalid quantity', {
+        description: 'Quantity must be a positive number greater than 0',
+      });
+      return;
+    }
+    if (isNaN(unit) || unit < 0) {
+      toast.error('Invalid unit cost', {
+        description: 'Unit cost cannot be negative',
+      });
       return;
     }
 
@@ -90,7 +104,7 @@ export function WorkCostsSection({
       setLaborHours('');
       toast.success('Cost entry recorded');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to record cost entry');
     }
   };
 
@@ -99,7 +113,7 @@ export function WorkCostsSection({
       await deleteCostMutation.mutateAsync(costId);
       toast.success('Cost entry removed');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to remove cost entry');
     }
   };
 

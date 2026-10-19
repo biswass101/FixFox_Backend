@@ -26,7 +26,7 @@ import {
 
 import { useTechnicians } from '@/hooks/use-entities';
 import { useAssignTechnicianMutation } from '@/hooks/use-work-orders';
-import { formatApiError } from '@/lib/api-errors';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
 
 interface AssignTechnicianDialogProps {
   workOrderId: string;
@@ -47,7 +47,9 @@ export function AssignTechnicianDialog({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!technicianId) {
-      toast.error('Please select a technician');
+      toast.error('No technician selected', {
+        description: 'Please select a technician from the dropdown list before assigning',
+      });
       return;
     }
 
@@ -59,7 +61,7 @@ export function AssignTechnicianDialog({
       setOpen(false);
       toast.success('Technician assigned successfully');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to assign technician');
     }
   };
 

@@ -10,7 +10,7 @@ import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent } from '@/components/ui/dialog';
 import { WorkOrderImage } from '@/types/work-orders';
 import { useUploadImageMutation } from '@/hooks/use-work-orders';
-import { formatApiError } from '@/lib/api-errors';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
 
 interface ImageGalleryProps {
   workOrderId: string;
@@ -33,12 +33,16 @@ export function ImageGallery({
     if (!file) return;
 
     if (images.length >= 5) {
-      toast.error('Maximum of 5 images allowed per work order');
+      toast.error('Upload limit reached', {
+        description: 'Maximum of 5 images allowed per work order',
+      });
       return;
     }
 
     if (!file.type.startsWith('image/')) {
-      toast.error('Please upload an image file (JPEG, PNG, WebP)');
+      toast.error('Invalid file type', {
+        description: `File "${file.name}" is not a supported image file`,
+      });
       return;
     }
 
@@ -47,7 +51,7 @@ export function ImageGallery({
       toast.success('Image uploaded successfully');
       if (fileInputRef.current) fileInputRef.current.value = '';
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to upload image');
     }
   };
 
@@ -67,7 +71,7 @@ export function ImageGallery({
               type="file"
               ref={fileInputRef}
               onChange={handleFileChange}
-              accept="image/jpeg,image/png,image/webp"
+              accept="image/*"
               className="hidden"
             />
             <Button

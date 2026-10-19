@@ -37,7 +37,7 @@ import { EmptyState } from '@/components/shared/empty-state';
 import { ConfirmDialog } from '@/components/shared/confirm-dialog';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Location } from '@/types/entities';
-import { formatApiError } from '@/lib/api-errors';
+import { formatApiError, showErrorToast } from '@/lib/api-errors';
 
 export default function LocationsPage() {
   const { user } = useAuthStore();
@@ -81,7 +81,12 @@ export default function LocationsPage() {
 
   const handleCreateSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!name.trim()) return;
+    if (!name.trim()) {
+      toast.error('Location name required', {
+        description: 'Please enter a name for this location',
+      });
+      return;
+    }
 
     try {
       await createMutation.mutateAsync({
@@ -94,13 +99,19 @@ export default function LocationsPage() {
       setIsCreateOpen(false);
       toast.success('Location created');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to create location');
     }
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingLocation || !name.trim()) return;
+    if (!editingLocation) return;
+    if (!name.trim()) {
+      toast.error('Location name required', {
+        description: 'Location name cannot be blank',
+      });
+      return;
+    }
 
     try {
       await updateMutation.mutateAsync({
@@ -113,7 +124,7 @@ export default function LocationsPage() {
       setEditingLocation(null);
       toast.success('Location updated');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to update location');
     }
   };
 
@@ -125,7 +136,7 @@ export default function LocationsPage() {
       setDeletingLocationId(null);
       toast.success('Location deleted');
     } catch (err) {
-      toast.error(formatApiError(err).message);
+      showErrorToast(err, 'Failed to delete location');
     }
   };
 
