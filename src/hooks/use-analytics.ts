@@ -41,3 +41,10 @@ export function useAnalyticsTrends() {
   });
 }
 
+export function useTechnicianPerformance() {
+  return useQuery({
+    queryKey: ANALYTICS_QUERY_KEYS.technicianPerformance,
+    queryFn: () => analyticsApi.getTechnicianPerformance(),
+    staleTime: 60 * 1000,
+  });
+}
