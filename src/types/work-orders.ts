@@ -68,7 +68,10 @@ export interface WorkOrderCost {
 
 export interface WorkOrderAIAnalysis {
   id: string;
+  organizationId?: string;
+  workOrderId?: string;
   model: string;
+  modelVersion?: string | null;
   status: 'PENDING' | 'PROCESSING' | 'COMPLETED' | 'FAILED' | 'REVIEWED';
   suggestedCategory?: WorkOrderCategory | null;
   suggestedPriority?: WorkOrderPriority | null;
@@ -80,8 +83,12 @@ export interface WorkOrderAIAnalysis {
   overrideReason?: string | null;
   finalCategory?: WorkOrderCategory | null;
   finalPriority?: WorkOrderPriority | null;
+  errorCode?: string | null;
+  errorMessage?: string | null;
   processingStartedAt?: string | null;
   processingCompletedAt?: string | null;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface WorkOrderStatusHistory {
@@ -113,12 +120,17 @@ export interface WorkOrder {
   version: number;
   createdAt: string;
   updatedAt: string;
+  locationId?: string;
+  assetId?: string | null;
+  reporterId?: string;
+  assigneeId?: string | null;
   location?: Location;
   asset?: Asset | null;
   reporter?: User;
   assignee?: User | null;
   images?: WorkOrderImage[];
   notes?: WorkNote[];
+  workNotes?: WorkNote[];
   costs?: WorkOrderCost[];
   aiAnalysis?: WorkOrderAIAnalysis | null;
   statusHistory?: WorkOrderStatusHistory[];
